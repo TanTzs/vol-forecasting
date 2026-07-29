@@ -1,0 +1,78 @@
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local data: keep directory structure and curated samples only
+data/raw/*
+data/interim/*
+data/processed/*
+data/external/*
+!data/**/.gitkeep
+!data/README.md
+!data/sample/**
+
+# Model artifacts and experiment outputs
+artifacts/
+checkpoints/
+models/
+outputs/
+results/
+runs/
+wandb/
+mlruns/
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.joblib
+
+# Large tabular/binary outputs
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.npy
+*.npz
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log
+logs/
+
+# LaTeX artifacts, if paper files ever live in this repo
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc

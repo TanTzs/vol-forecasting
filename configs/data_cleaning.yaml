@@ -1,0 +1,22 @@
+# 5 minute
+raw_dir: data/raw/chinese
+processed_dir: data/processed
+market: chinese_a_share
+bar_frequency: 5min
+
+session:
+  morning_start: "09:30"
+  morning_end: "11:30"
+  afternoon_start: "13:00"
+  afternoon_end: "15:00"
+  drop_lunch_open: true
+
+cleaning:
+  zero_quotes_as_missing: true
+  midpoint_from_bid_ask: true
+  adjust_lunch_break: true
+
+output:
+  format: csv
+  layout: wide_by_date
+
