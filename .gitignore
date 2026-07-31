@@ -23,6 +23,7 @@ env/
 
 # Local data: keep directory structure and curated samples only
 data/raw/*
+data/bak/*
 data/interim/*
 data/processed/*
 data/external/*
