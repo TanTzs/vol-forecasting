@@ -101,6 +101,15 @@ class OLSForecaster:
             returns,
             self.rv_frequency,
         )["log_rv"].to_numpy()
+        return self.predict_next_from_log_rv(values)
+
+    def predict_next_from_log_rv(
+        self,
+        log_rv_history: np.ndarray | list[float],
+    ) -> float:
+        """Predict from log-RV history, including recursive DQN history."""
+
+        values = np.asarray(log_rv_history, dtype=float)
         if len(values) < self.n_lags:
             raise ValueError("Not enough RV observations to predict")
         features = values[-self.n_lags :].reshape(1, -1)
@@ -175,6 +184,15 @@ class HARForecaster:
             returns,
             self.rv_frequency,
         )["log_rv"].to_numpy()
+        return self.predict_next_from_log_rv(values)
+
+    def predict_next_from_log_rv(
+        self,
+        log_rv_history: np.ndarray | list[float],
+    ) -> float:
+        """Predict from log-RV history, including recursive DQN history."""
+
+        values = np.asarray(log_rv_history, dtype=float)
         if len(values) < self.max_window:
             raise ValueError("Not enough RV observations to predict")
         features = np.array(

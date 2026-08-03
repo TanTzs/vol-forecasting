@@ -10,6 +10,7 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "code" / "src"))
+sys.path.insert(0, str(PROJECT_ROOT / "code" / "scripts"))
 
 from volatility_forecasting_dqn.data.returns import EXPECTED_TIMES  # noqa: E402
 from volatility_forecasting_dqn.features import (  # noqa: E402
@@ -19,6 +20,7 @@ from volatility_forecasting_dqn.forecasting import (  # noqa: E402
     HARForecaster,
     OLSForecaster,
 )
+from train_linear_candidates import build_rolling_windows  # noqa: E402
 
 
 def returns_from_log_rv(log_rv_values: list[float]) -> pd.DataFrame:
@@ -89,6 +91,11 @@ class LinearForecasterTests(unittest.TestCase):
             expected_next,
             places=10,
         )
+        self.assertAlmostEqual(
+            model.predict_next_from_log_rv(log_rv),
+            expected_next,
+            places=10,
+        )
 
     def test_har_recovers_an_exact_1_5_22_process(self) -> None:
         log_rv = np.linspace(-6.2, -5.6, 22).tolist()
@@ -120,6 +127,28 @@ class LinearForecasterTests(unittest.TestCase):
             expected_next,
             places=10,
         )
+        self.assertAlmostEqual(
+            model.predict_next_from_log_rv(log_rv),
+            expected_next,
+            places=10,
+        )
+
+
+class RollingWindowTests(unittest.TestCase):
+    def test_training_always_precedes_its_forecast_period(self) -> None:
+        windows = build_rolling_windows()
+
+        self.assertEqual(len(windows), 10)
+        self.assertEqual(windows[0]["train_start"], pd.Timestamp("2016-01-01"))
+        self.assertEqual(windows[0]["train_end"], pd.Timestamp("2019-12-31"))
+        self.assertEqual(windows[-1]["train_end"], pd.Timestamp("2024-06-30"))
+        self.assertEqual(windows[-1]["forecast_end"], pd.Timestamp("2024-12-31"))
+        for window in windows:
+            self.assertLess(window["train_end"], window["forecast_start"])
+            self.assertLessEqual(
+                window["forecast_start"],
+                window["forecast_end"],
+            )
 
 
 if __name__ == "__main__":
