@@ -3,6 +3,7 @@
 from .linear_models import HARForecaster, OLSForecaster
 
 __all__ = [
+    "CausalBlock",
     "HARForecaster",
     "LSTMForecaster",
     "OLSForecaster",
@@ -12,6 +13,7 @@ __all__ = [
 ]
 
 _NEURAL_EXPORTS = {
+    "CausalBlock",
     "LSTMForecaster",
     "TCNForecaster",
     "load_neural_forecaster",

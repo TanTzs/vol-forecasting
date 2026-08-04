@@ -68,7 +68,7 @@ class LSTMNetwork(nn.Module):
         return self.output(sequence[:, -1])
 
 
-class _CausalBlock(nn.Module):
+class CausalBlock(nn.Module):
     def __init__(
         self,
         in_channels: int,
@@ -126,7 +126,7 @@ class TCNNetwork(nn.Module):
         in_channels = 1
         for layer_index in range(num_layers):
             layers.append(
-                _CausalBlock(
+                CausalBlock(
                     in_channels=in_channels,
                     out_channels=num_channels,
                     kernel_size=kernel_size,

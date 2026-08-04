@@ -1,4 +1,4 @@
-"""Merge candidate forecasts into one data set for DQN training."""
+"""Prepare aligned candidate forecasts for one-step DQN experiments."""
 
 import argparse
 from pathlib import Path
@@ -35,12 +35,12 @@ def load_predictions(path: Path, required_columns: list[str]) -> pd.DataFrame:
     return frame
 
 
-def prepare_dqn_data(
+def prepare_one_step_dqn_data(
     frequency: str,
     results_dir: Path,
     output_dir: Path,
 ) -> pd.DataFrame:
-    """Combine the six candidate forecasts for one sampling frequency."""
+    """Combine the six one-step forecasts for one sampling frequency."""
 
     linear = load_predictions(
         results_dir / f"linear_predictions_{frequency}.csv",
@@ -75,29 +75,29 @@ def prepare_dqn_data(
     output_columns = (
         KEY_COLUMNS + ACTUAL_COLUMNS + PREDICTION_COLUMNS
     )
-    dqn_data = merged[output_columns].copy()
-    if dqn_data[ACTUAL_COLUMNS + PREDICTION_COLUMNS].isna().any().any():
+    one_step_data = merged[output_columns].copy()
+    if one_step_data[ACTUAL_COLUMNS + PREDICTION_COLUMNS].isna().any().any():
         raise ValueError("The merged data contain missing targets or predictions")
 
-    dates = pd.to_datetime(dqn_data["Date"])
-    checkpoint_dates = pd.to_datetime(dqn_data["checkpoint_date"])
+    dates = pd.to_datetime(one_step_data["Date"])
+    checkpoint_dates = pd.to_datetime(one_step_data["checkpoint_date"])
     if checkpoint_dates.ge(dates).any():
         raise ValueError("A forecast is dated on or before its training checkpoint")
 
-    dqn_data = dqn_data.sort_values(
+    one_step_data = one_step_data.sort_values(
         ["stock", "Date", "Time"]
     ).reset_index(drop=True)
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"dqn_candidates_{frequency}.csv"
-    dqn_data.to_csv(output_path, index=False)
-    print(f"Saved {len(dqn_data):,} aligned rows to {output_path}")
-    return dqn_data
+    output_path = output_dir / f"one_step_dqn_data_{frequency}.csv"
+    one_step_data.to_csv(output_path, index=False)
+    print(f"Saved {len(one_step_data):,} aligned rows to {output_path}")
+    return one_step_data
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Merge candidate forecasts for DQN training."
+        description="Prepare candidate forecasts for one-step DQN training."
     )
     parser.add_argument(
         "--frequency",
@@ -116,7 +116,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    prepare_dqn_data(
+    prepare_one_step_dqn_data(
         frequency=args.frequency,
         results_dir=args.results_dir,
         output_dir=args.output_dir,
