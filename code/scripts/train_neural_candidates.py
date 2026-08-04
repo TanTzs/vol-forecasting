@@ -137,10 +137,11 @@ def make_forecast_records(
 def calculate_metrics(
     predictions: pd.DataFrame,
     frequency: str,
+    candidate_names: tuple[str, ...] = CANDIDATE_NAMES,
 ) -> pd.DataFrame:
     rows = []
     actual = predictions["log_rv"].to_numpy()
-    for candidate_name in CANDIDATE_NAMES:
+    for candidate_name in candidate_names:
         difference = (
             actual
             - predictions[f"{candidate_name}_prediction"].to_numpy()
@@ -165,16 +166,61 @@ def train_neural_candidates(
     checkpoint_root: Path,
     results_dir: Path,
     learning_rate: float = 0.001,
-    epochs: int = 100,
-    patience: int = 10,
-    batch_size: int = 1024,
+    epochs: int = 200,
+    patience: int = 20,
+    batch_size: int = 64,
     device: str = "auto",
     seed: int = 42,
+    candidate_names: tuple[str, ...] = CANDIDATE_NAMES,
+    checkpoint_date: pd.Timestamp | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Run the pooled rolling experiment for all four neural candidates."""
+    """Run the pooled rolling experiment for selected neural candidates."""
 
     stocks = load_return_files(returns_dir)
     windows = build_rolling_windows()
+    if checkpoint_date is not None:
+        checkpoint_date = pd.Timestamp(checkpoint_date).normalize()
+        windows = [
+            window
+            for window in windows
+            if window["train_end"] == checkpoint_date
+        ]
+        if not windows:
+            raise ValueError(
+                f"No rolling checkpoint ends on {checkpoint_date.date()}"
+            )
+
+    unknown_candidates = set(candidate_names) - set(CANDIDATE_NAMES)
+    if unknown_candidates:
+        raise ValueError(
+            f"Unknown candidates: {sorted(unknown_candidates)}"
+        )
+    if not candidate_names:
+        raise ValueError("At least one candidate must be selected")
+
+    is_full_run = (
+        candidate_names == CANDIDATE_NAMES
+        and checkpoint_date is None
+    )
+    if is_full_run:
+        run_tag = frequency
+        checkpoint_output_root = checkpoint_root / frequency
+    else:
+        tag_parts = [
+            frequency,
+            *candidate_names,
+            (
+                checkpoint_date.strftime("%Y%m%d")
+                if checkpoint_date is not None
+                else "all-checkpoints"
+            ),
+            f"bs{batch_size}",
+            f"ep{epochs}",
+            f"seed{seed}",
+        ]
+        run_tag = "_".join(tag_parts)
+        checkpoint_output_root = checkpoint_root / frequency / run_tag
+
     all_records = []
 
     for window in windows:
@@ -202,7 +248,7 @@ def train_neural_candidates(
         )
 
         models = {}
-        for candidate_name in CANDIDATE_NAMES:
+        for candidate_name in candidate_names:
             print(f"  training {candidate_name} ...")
             model = create_forecaster(
                 candidate_name=candidate_name,
@@ -218,8 +264,7 @@ def train_neural_candidates(
             models[candidate_name] = model
 
             checkpoint_path = (
-                checkpoint_root
-                / frequency
+                checkpoint_output_root
                 / f"{candidate_name}_{checkpoint_name}.pt"
             )
             save_neural_forecaster(
@@ -242,15 +287,19 @@ def train_neural_candidates(
     predictions = predictions.sort_values(
         ["stock", "Date", "Time"]
     ).reset_index(drop=True)
-    metrics = calculate_metrics(predictions, frequency)
+    metrics = calculate_metrics(
+        predictions,
+        frequency,
+        candidate_names,
+    )
 
     results_dir.mkdir(parents=True, exist_ok=True)
     predictions.to_csv(
-        results_dir / f"neural_predictions_{frequency}.csv",
+        results_dir / f"neural_predictions_{run_tag}.csv",
         index=False,
     )
     metrics.to_csv(
-        results_dir / f"neural_metrics_{frequency}.csv",
+        results_dir / f"neural_metrics_{run_tag}.csv",
         index=False,
     )
     return predictions, metrics
@@ -265,9 +314,9 @@ def main() -> None:
         required=True,
         choices=["1D", "1H"],
     )
-    parser.add_argument("--epochs", type=int, default=100)
-    parser.add_argument("--patience", type=int, default=10)
-    parser.add_argument("--batch-size", type=int, default=1024)
+    parser.add_argument("--epochs", type=int, default=200)
+    parser.add_argument("--patience", type=int, default=20)
+    parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--learning-rate", type=float, default=0.001)
     parser.add_argument(
         "--device",
@@ -275,6 +324,16 @@ def main() -> None:
         default="auto",
     )
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--candidate",
+        choices=CANDIDATE_NAMES,
+        help="Train only one candidate; omit to train all candidates.",
+    )
+    parser.add_argument(
+        "--checkpoint-date",
+        type=pd.Timestamp,
+        help="Train only the rolling checkpoint ending on YYYY-MM-DD.",
+    )
     parser.add_argument(
         "--returns-dir",
         type=Path,
@@ -303,6 +362,12 @@ def main() -> None:
         batch_size=args.batch_size,
         device=args.device,
         seed=args.seed,
+        candidate_names=(
+            (args.candidate,)
+            if args.candidate is not None
+            else CANDIDATE_NAMES
+        ),
+        checkpoint_date=args.checkpoint_date,
     )
     print(f"Saved {len(predictions):,} out-of-sample predictions")
     print(metrics.to_string(index=False))
