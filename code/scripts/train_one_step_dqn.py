@@ -81,7 +81,8 @@ def train(
     args: argparse.Namespace,
 ) -> tuple[pd.DataFrame, Path]:
     """Run one seeded one-step DQN experiment."""
-
+    if args.train_frequency < 1:
+        raise ValueError("train_frequency must be positive")
     if args.training_steps < 1:
         raise ValueError("training_steps must be positive")
     if args.eval_interval < 1:
@@ -181,7 +182,9 @@ def train(
             terminated=terminated,
             truncated=truncated,
         )
-        loss = agent.update()
+        loss = None
+        if step % args.train_frequency == 0:
+            loss = agent.update()
         interval_rewards.append(reward)
         if loss is not None:
             interval_losses.append(loss)
@@ -267,6 +270,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--replay-capacity", type=int, default=50_000)
     parser.add_argument("--learning-starts", type=int, default=1_000)
+    parser.add_argument(
+        "--train-frequency",
+        type=int,
+        default=4,
+    )
     parser.add_argument(
         "--target-update-interval",
         type=int,
