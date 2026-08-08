@@ -43,6 +43,13 @@ def make_one_step_data() -> pd.DataFrame:
 
 
 class OneStepTrainingScriptTests(unittest.TestCase):
+    def test_validation_defaults_match_training_schedule(self) -> None:
+        args = build_parser().parse_args(["--frequency", "1D"])
+
+        self.assertEqual(args.eval_interval, 1_000)
+        self.assertEqual(args.patience, 50)
+        self.assertEqual(args.train_frequency, 4)
+
     def test_short_training_run_saves_history_and_checkpoint(self) -> None:
         with tempfile.TemporaryDirectory() as temp_directory:
             root = Path(temp_directory)

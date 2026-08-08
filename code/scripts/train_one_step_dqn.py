@@ -292,11 +292,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=10.0,
     )
-    parser.add_argument("--eval-interval", type=int, default=5_000)
+    parser.add_argument("--eval-interval", type=int, default=1_000)
     parser.add_argument(
         "--patience",
         type=int,
-        default=10,
+        default=50,
         help="Validation checks without improvement; zero disables stopping.",
     )
     parser.add_argument(
